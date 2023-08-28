@@ -1,0 +1,31 @@
+export const getActivity = async (userId: string) => {
+
+    try {
+        connectToDB();
+
+        // encontrar todos los tweets hechos por el usuario
+        const userTweets = await Tweet.find({ author: userId })
+
+        // Recopilar todos los todos los ids de las respuestas al Tweet orignal. Entonces hacemos un map por todos los Tweets con reduce y luego vamos a acumularlos y devolver los comentarios como un array de childrens.
+
+        // Básicamente agarra todos los comentarios que hayan en los Tweets, y hace un nuevo array con todos los comentarios.
+        const childTweetIds = userTweets.reduce((acc, userTweet) => {    
+            return acc.concat(userTweet.children)
+        }, []) // el array vacio es el valor inicial del acumulador.
+
+        // ahora vamos a exlcluir los Tweets del usuario que esta buscando
+        const replies = await Tweet.find({
+            _id: { $in: childTweetIds },
+            author: { $ne: userId }
+        }).populate({
+            path: "author",
+            model: User,
+            select: "name image _id"
+        })
+
+        return replies
+
+    } catch (error: any) {
+        throw new Error(`Failed to fetch activity: ${error.message}`)
+    }
+}
